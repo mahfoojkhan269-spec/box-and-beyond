@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Box & Beyond — Orders</title>
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <h1>Box & Beyond</h1>
+  <button class="btn btn-outline btn-sm" id="logoutBtn">Log out</button>
+</div>
+<div class="main">
+  <div class="toolbar">
+    <select id="statusFilter">
+      <option value="">All statuses</option>
+      <option value="received">Received</option>
+      <option value="shipment_created">Shipment created</option>
+      <option value="dispatched">Dispatched</option>
+      <option value="delivered">Delivered</option>
+      <option value="failed">Failed</option>
+      <option value="needs_review">Needs review</option>
+    </select>
+    <input type="text" id="search" placeholder="Search by student name or order id...">
+    <button class="btn btn-outline btn-sm" id="refreshBtn">Refresh</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Order ID</th>
+        <th>Student</th>
+        <th>Course</th>
+        <th>Status</th>
+        <th>AWB</th>
+        <th>Received</th>
+      </tr>
+    </thead>
+    <tbody id="ordersBody"></tbody>
+  </table>
+</div>
+<script src="api.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

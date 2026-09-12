@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Box & Beyond — Login</title>
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>Box & Beyond</h1>
+    <p class="sub">Ops login</p>
+    <div id="msg" class="auth-msg err hide"></div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="email" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" id="loginBtn">Log in</button>
+    </form>
+  </div>
+</div>
+<script>
+const msg = document.getElementById('msg');
+function showError(text) { msg.textContent = text; msg.classList.remove('hide'); }
+
+// Already have a valid session? Skip straight to the dashboard.
+if (localStorage.getItem('ns_refresh_token')) window.location.href = 'dashboard.html';
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  msg.classList.add('hide');
+  try {
+    const res = await fetch(`${window.API_BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showError(data.error || 'Login failed'); return; }
+    localStorage.setItem('ns_access_token', data.access_token);
+    localStorage.setItem('ns_refresh_token', data.refresh_token);
+    window.location.href = 'dashboard.html';
+  } catch (err) {
+    showError('Could not reach the server. Please try again.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
