@@ -10,10 +10,20 @@ Domain: **boxandbeyondservice.in**
 
 See [`docs/nextopper-webhook-api.md`](docs/nextopper-webhook-api.md) for the full API contract to hand to Nextopper's dev team (endpoint, auth, payload shape, response codes).
 
-1. Nextopper calls `POST /api/webhooks/nextopper` the moment a student buys a course.
-2. We verify the request signature, store the order, and immediately call DTDC's API to book a shipment (AWB + label).
-3. A background job polls DTDC every `DTDC_SYNC_INTERVAL_MINUTES` for tracking updates on shipments that aren't delivered yet, and flags anything stuck too long as `needs_review`.
+1. Nextopper calls `POST /api/webhooks/nextopper` the moment a student buys a course. This only saves the order and returns immediately — it does **not** call DTDC inline (see "Built for high volume" below).
+2. A background job (`jobs/processBookings.js`, every `DTDC_BOOKING_INTERVAL_MINUTES`) picks up every order still at `status: received` and books it with DTDC (AWB + label), with several bookings in flight at once rather than one at a time.
+3. Another background job (`jobs/syncShipments.js`, every `DTDC_SYNC_INTERVAL_MINUTES`) polls DTDC for tracking updates on shipments that aren't delivered yet, records failed delivery attempts (NDR) with their reason, and flags anything stuck too long as `needs_review`.
 4. Ops staff log into the dashboard (`app.boxandbeyondservice.in`) to see every order's status, retry failed DTDC bookings, and open shipment labels.
+
+## Built for high volume
+
+This is designed to hold up at "lakhs of orders" scale, not just a few hundred:
+
+- **The webhook never blocks on DTDC.** Booking happens asynchronously in `jobs/processBookings.js`, so a burst of incoming orders (or a slow/down moment on DTDC's side) can't back up or time out Nextopper's own webhook calls.
+- **Both background jobs process bounded, concurrency-limited batches** (`lib/concurrency.js`), not one item at a time in a loop — so a large backlog can't make a single scheduled run take longer than the interval before the next one starts.
+- **The order list is paginated and searched server-side** (`GET /api/orders?page=&limit=&search=`) — the dashboard only ever holds one page of rows in memory, never the whole table.
+- **`supabase/schema.sql` indexes what the app actually queries at scale**: `(status, received_at)` for the paginated/filtered list and the booking queue, and `pg_trgm` GIN indexes so student-name/order-id search stays fast well past the point where a plain index would only help exact/prefix matches.
+- Webhook signature failures and every inbound call are still logged (`webhook_logs`), which itself gets slower to page through at huge volume — no retention/pruning policy exists yet, worth adding before this table gets enormous.
 
 ## Setup
 

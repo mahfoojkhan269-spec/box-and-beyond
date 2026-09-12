@@ -2,6 +2,9 @@
 -- Run this in the Supabase SQL editor for a fresh project.
 
 create extension if not exists "pgcrypto";
+-- Powers fast ILIKE '%term%' search on student_name / nextopper_order_id at
+-- high row counts (a plain btree only helps prefix matches, not "contains").
+create extension if not exists "pg_trgm";
 
 create table if not exists orders (
   id uuid primary key default gen_random_uuid(),
@@ -70,7 +73,15 @@ create table if not exists delivery_attempts (
 );
 
 create index if not exists idx_shipments_order_id on shipments(order_id);
+create index if not exists idx_shipments_courier_status on shipments(courier_status);
+create index if not exists idx_shipments_last_synced_at on shipments(last_synced_at);
 create index if not exists idx_orders_status on orders(status);
+-- Covers "list orders, optionally by status, newest first" — the dashboard's
+-- main query and the booking queue's "oldest received first" query both hit this.
+create index if not exists idx_orders_status_received_at on orders(status, received_at);
+create index if not exists idx_orders_received_at on orders(received_at desc);
+create index if not exists idx_orders_student_name_trgm on orders using gin (student_name gin_trgm_ops);
+create index if not exists idx_orders_nextopper_order_id_trgm on orders using gin (nextopper_order_id gin_trgm_ops);
 create index if not exists idx_order_events_order_id on order_events(order_id);
 create index if not exists idx_delivery_attempts_order_id on delivery_attempts(order_id);
 

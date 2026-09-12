@@ -7,6 +7,7 @@ const orderRoutes = require('./routes/orders');
 const authRoutes = require('./routes/auth');
 const webhookLogRoutes = require('./routes/webhookLogs');
 const { syncShipments } = require('./jobs/syncShipments');
+const { processBookings } = require('./jobs/processBookings');
 
 // Express 4 doesn't forward a rejected async handler's promise anywhere, so an
 // unhandled rejection anywhere in the process would otherwise crash the whole
@@ -51,11 +52,21 @@ const server = app.listen(PORT, () => {
   console.log(`Box & Beyond API listening on http://localhost:${PORT}`);
 
   const cron = require('node-cron');
+
   const intervalMinutes = Number(process.env.DTDC_SYNC_INTERVAL_MINUTES || 15);
   cron.schedule(`*/${intervalMinutes} * * * *`, () => {
     syncShipments().catch(err => console.error('[syncShipments] Job failed:', err));
   });
   console.log(`[syncShipments] Scheduled every ${intervalMinutes} minute(s).`);
+
+  // Runs far more often than the tracking sync above — booking a shipment is
+  // the time-sensitive step (a student shouldn't wait long after their order
+  // is received), whereas courier status genuinely only changes every so often.
+  const bookingIntervalMinutes = Number(process.env.DTDC_BOOKING_INTERVAL_MINUTES || 1);
+  cron.schedule(`*/${bookingIntervalMinutes} * * * *`, () => {
+    processBookings().catch(err => console.error('[processBookings] Job failed:', err));
+  });
+  console.log(`[processBookings] Scheduled every ${bookingIntervalMinutes} minute(s).`);
 });
 
 // Let in-flight requests finish instead of severing them when Render restarts

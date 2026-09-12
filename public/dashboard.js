@@ -1,9 +1,18 @@
 if (!localStorage.getItem('ns_refresh_token')) window.location.href = 'index.html';
 
 document.getElementById('logoutBtn').addEventListener('click', logout);
-document.getElementById('refreshBtn').addEventListener('click', () => { loadOrders(); loadStats(); });
-document.getElementById('statusFilter').addEventListener('change', loadOrders);
-document.getElementById('search').addEventListener('input', renderFiltered);
+document.getElementById('refreshBtn').addEventListener('click', () => { loadOrders(1); loadStats(); });
+document.getElementById('statusFilter').addEventListener('change', () => loadOrders(1));
+document.getElementById('prevPageBtn').addEventListener('click', () => loadOrders(currentPage - 1));
+document.getElementById('nextPageBtn').addEventListener('click', () => loadOrders(currentPage + 1));
+
+// Debounced: search runs as a real SQL query server-side (see GET /api/orders),
+// so it shouldn't fire on every keystroke once order volume is large.
+let searchDebounce;
+document.getElementById('search').addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => loadOrders(1), 300);
+});
 const userEmail = localStorage.getItem('ns_user_email') || '';
 document.getElementById('accountEmail').textContent = userEmail;
 document.getElementById('accountAvatar').textContent = userEmail.slice(0, 2).toUpperCase() || '??';
@@ -24,16 +33,18 @@ function switchView(view) {
 
   if (view === 'needs-review') {
     document.getElementById('statusFilter').value = 'needs_review';
-    loadOrders();
+    loadOrders(1);
   } else if (view === 'orders') {
     document.getElementById('statusFilter').value = '';
-    loadOrders();
+    loadOrders(1);
   } else if (view === 'logs') {
     loadLogs();
   }
 }
 
-let allOrders = [];
+const PAGE_SIZE = 25;
+let currentPage = 1;
+let totalOrders = 0;
 let expandedId = null;
 
 const STAT_CARDS = [
@@ -69,24 +80,28 @@ async function loadStats() {
   `).join('');
 }
 
-async function loadOrders() {
+async function loadOrders(page) {
+  currentPage = Math.max(1, page || 1);
   const status = document.getElementById('statusFilter').value;
-  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
-  const res = await apiFetch(`/api/orders${qs}`);
+  const search = document.getElementById('search').value.trim();
+
+  const params = new URLSearchParams({ page: currentPage, limit: PAGE_SIZE });
+  if (status) params.set('status', status);
+  if (search) params.set('search', search);
+
+  const res = await apiFetch(`/api/orders?${params}`);
   if (!res.ok) return;
   const data = await res.json();
-  allOrders = data.orders || [];
-  renderFiltered();
+  totalOrders = data.total || 0;
+  renderOrders(data.orders || []);
+  renderPagination();
 }
 
-function renderFiltered() {
-  const term = document.getElementById('search').value.trim().toLowerCase();
-  const filtered = !term
-    ? allOrders
-    : allOrders.filter(o =>
-        (o.student_name || '').toLowerCase().includes(term) ||
-        (o.nextopper_order_id || '').toLowerCase().includes(term));
-  renderOrders(filtered);
+function renderPagination() {
+  const totalPages = Math.max(1, Math.ceil(totalOrders / PAGE_SIZE));
+  document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages} · ${totalOrders} order(s)`;
+  document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+  document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
 }
 
 function renderOrders(orders) {
@@ -212,7 +227,7 @@ async function retryOrder(id) {
   const data = await res.json();
   if (!res.ok) { alert(data.error || 'Retry failed'); return; }
   expandedId = null;
-  loadOrders();
+  loadOrders(currentPage);
   loadStats();
 }
 
@@ -220,9 +235,9 @@ async function markDelivered(id) {
   const res = await apiFetch(`/api/orders/${id}/mark-delivered`, { method: 'POST' });
   if (!res.ok) { alert('Could not update status'); return; }
   expandedId = null;
-  loadOrders();
+  loadOrders(currentPage);
   loadStats();
 }
 
-loadOrders();
+loadOrders(1);
 loadStats();

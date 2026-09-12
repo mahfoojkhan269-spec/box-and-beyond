@@ -32,6 +32,7 @@ h1,h2{font-family:var(--heading-font)}
 .btn-full{width:100%;margin-top:4px}
 .btn-sm{padding:6px 12px;font-size:12px}
 .btn-outline{background:var(--card);color:var(--t);border:1px solid var(--brm)}.btn-outline:hover{background:var(--sf)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 
 .form-group{margin-bottom:14px}
 .form-group label{display:block;font-size:12px;color:var(--mt);font-weight:600;margin-bottom:5px}
@@ -122,6 +123,9 @@ tr.row-clickable:hover{background:var(--hv)}
 .badge-failed,.badge-needs_review{background:var(--rl);color:#d25345}
 
 .empty{padding:40px;text-align:center;color:var(--mt);font-size:13px}
+
+.pagination{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:16px}
+.page-info{font-size:12px;color:var(--mt)}
 
 .detail-row td{background:var(--sf)}
 .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:8px 4px}
