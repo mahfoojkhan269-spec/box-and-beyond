@@ -8,6 +8,8 @@ Domain: **boxandbeyondservice.in**
 
 ## How it works
 
+See [`docs/nextopper-webhook-api.md`](docs/nextopper-webhook-api.md) for the full API contract to hand to Nextopper's dev team (endpoint, auth, payload shape, response codes).
+
 1. Nextopper calls `POST /api/webhooks/nextopper` the moment a student buys a course.
 2. We verify the request signature, store the order, and immediately call DTDC's API to book a shipment (AWB + label).
 3. A background job polls DTDC every `DTDC_SYNC_INTERVAL_MINUTES` for tracking updates on shipments that aren't delivered yet, and flags anything stuck too long as `needs_review`.
