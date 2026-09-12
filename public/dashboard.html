@@ -10,18 +10,27 @@
 <body>
 <div class="app-shell">
   <aside class="sidebar">
-    <div class="sidebar-brand">Box & Beyond</div>
+    <div class="sidebar-brand">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i></span><span><strong>Box & Beyond</strong><small>LOGISTICS OPS</small></span></div>
+    </div>
     <nav class="sidebar-nav">
+      <p class="nav-label">Main</p>
       <button class="nav-item active" data-view="orders">Orders</button>
       <button class="nav-item" data-view="needs-review">Needs review</button>
+      <p class="nav-label">Debugging</p>
       <button class="nav-item" data-view="logs">Webhook logs</button>
     </nav>
+    <div class="sidebar-bottom">
+      <div class="account-row">
+        <span class="account-avatar" id="accountAvatar"></span>
+        <span class="account-email" id="accountEmail"></span>
+      </div>
+    </div>
   </aside>
   <div class="content">
     <header class="topbar">
       <h1 id="viewTitle">Orders</h1>
       <div class="topbar-right">
-        <span class="user-email" id="userEmail"></span>
         <button class="btn btn-outline btn-sm" id="logoutBtn">Log out</button>
       </div>
     </header>

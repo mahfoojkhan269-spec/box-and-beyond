@@ -4,7 +4,9 @@ document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('refreshBtn').addEventListener('click', () => { loadOrders(); loadStats(); });
 document.getElementById('statusFilter').addEventListener('change', loadOrders);
 document.getElementById('search').addEventListener('input', renderFiltered);
-document.getElementById('userEmail').textContent = localStorage.getItem('ns_user_email') || '';
+const userEmail = localStorage.getItem('ns_user_email') || '';
+document.getElementById('accountEmail').textContent = userEmail;
+document.getElementById('accountAvatar').textContent = userEmail.slice(0, 2).toUpperCase() || '??';
 
 const VIEW_TITLES = { orders: 'Orders', 'needs-review': 'Needs review', logs: 'Webhook logs' };
 
