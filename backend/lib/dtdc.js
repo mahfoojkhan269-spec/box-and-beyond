@@ -61,7 +61,14 @@ async function createDtdcShipment(order) {
 
 /**
  * Fetches the current courier status for an AWB.
- * @returns {Promise<{ status: string, lastUpdatedAt: string }>}
+ *
+ * `ndrReason` is populated when DTDC attempted delivery and it failed
+ * (customer unavailable, refused, bad address, etc — an "NDR", non-delivery
+ * report, in courier terminology) — distinct from never having booked the
+ * shipment at all. PLACEHOLDER field name `ndr_reason` — confirm against
+ * DTDC's real tracking response shape once we have their docs.
+ *
+ * @returns {Promise<{ status: string, lastUpdatedAt: string, ndrReason: string|null }>}
  */
 async function getDtdcTrackingStatus(awb) {
   const { baseUrl, apiKey } = creds();
@@ -75,6 +82,7 @@ async function getDtdcTrackingStatus(awb) {
   return {
     status: data.status,
     lastUpdatedAt: data.last_updated_at,
+    ndrReason: data.ndr_reason || null,
   };
 }
 

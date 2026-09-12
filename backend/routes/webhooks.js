@@ -4,6 +4,7 @@ const asyncHandler = require('../lib/asyncHandler');
 const { serviceClient } = require('../lib/supabase');
 const { verifyNextopperSignature, normalizeNextopperPayload } = require('../lib/nextopperWebhook');
 const { createDtdcShipment } = require('../lib/dtdc');
+const { setOrderStatus } = require('../lib/orderEvents');
 
 const router = express.Router();
 
@@ -50,6 +51,8 @@ router.post('/nextopper', webhookLimiter, asyncHandler(async (req, res) => {
     return res.sendStatus(200);
   }
 
+  await sb.from('order_events').insert([{ order_id: order.id, status: 'received' }]);
+
   try {
     const shipment = await createDtdcShipment(order);
     await sb.from('shipments').insert([{
@@ -60,16 +63,16 @@ router.post('/nextopper', webhookLimiter, asyncHandler(async (req, res) => {
       courier_status: 'booked',
       last_synced_at: new Date().toISOString(),
     }]);
-    await sb.from('orders').update({ status: 'shipment_created' }).eq('id', order.id);
+    await setOrderStatus(sb, order.id, 'shipment_created');
   } catch (err) {
     console.error('POST /webhooks/nextopper DTDC booking', err);
-    await sb.from('orders').update({ status: 'needs_review' }).eq('id', order.id);
     await sb.from('shipments').insert([{
       order_id: order.id,
       courier_status: 'failed',
       error_message: err.message,
       retry_count: 0,
     }]);
+    await setOrderStatus(sb, order.id, 'needs_review', `DTDC booking failed: ${err.message}`);
   }
 
   res.sendStatus(200);
