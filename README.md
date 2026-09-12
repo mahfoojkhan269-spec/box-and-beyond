@@ -2,9 +2,11 @@
 
 Receives course-purchase orders from Nextopper via webhook, books the study-material shipment with DTDC automatically, and gives ops staff a dashboard to watch the pipeline and handle failures.
 
-Domain: **boxandbeyondservices.in**
-- `api.boxandbeyondservices.in` → backend (Express API)
-- `app.boxandbeyondservices.in` → staff dashboard (static `public/` site)
+Live URLs (using Render's free `onrender.com` subdomains directly — no custom domain wired up yet, by choice, to avoid Render's paid custom-domain slot):
+- https://box-and-beyond-api.onrender.com → backend (Express API)
+- https://box-and-beyond-app.onrender.com → staff dashboard (static `public/` site)
+
+The domain **boxandbeyondservices.in** is owned but not pointed at anything yet. `api.boxandbeyondservices.in` / `app.boxandbeyondservices.in` are registered as custom domains on Render (waiting on DNS) for whenever you're ready to switch — see **Deployment** below for the exact CNAME records and how to cut over.
 
 ## How it works
 
@@ -13,7 +15,7 @@ See [`docs/nextopper-webhook-api.md`](docs/nextopper-webhook-api.md) for the ful
 1. Nextopper calls `POST /api/webhooks/nextopper` the moment a student buys a course. This only saves the order and returns immediately — it does **not** call DTDC inline (see "Built for high volume" below).
 2. A background job (`jobs/processBookings.js`, every `DTDC_BOOKING_INTERVAL_MINUTES`) picks up every order still at `status: received` and books it with DTDC (AWB + label), with several bookings in flight at once rather than one at a time.
 3. Another background job (`jobs/syncShipments.js`, every `DTDC_SYNC_INTERVAL_MINUTES`) polls DTDC for tracking updates on shipments that aren't delivered yet, records failed delivery attempts (NDR) with their reason, and flags anything stuck too long as `needs_review`.
-4. Ops staff log into the dashboard (`app.boxandbeyondservices.in`) to see every order's status, retry failed DTDC bookings, and open shipment labels.
+4. Ops staff log into the dashboard (https://box-and-beyond-app.onrender.com) to see every order's status, retry failed DTDC bookings, and open shipment labels.
 
 ## Built for high volume
 
@@ -31,7 +33,7 @@ This is designed to hold up at "lakhs of orders" scale, not just a few hundred:
 2. Create the 2-3 staff logins in Supabase Auth (dashboard → Authentication → Users → Add user). No signup flow exists in this app on purpose.
 3. `cd backend && npm install`, copy `.env.example` to `.env` and fill in the values (see below).
 4. `npm run dev` to run locally (default port 4100).
-5. Serve `public/` with any static file server for local testing — `public/config.js` already points at `localhost:4100` for local dev and `api.boxandbeyondservices.in` for anything else.
+5. Serve `public/` with any static file server for local testing — `public/config.js` already points at `localhost:4100` for local dev and `https://box-and-beyond-api.onrender.com` for anything else.
 
 ## Testing before going live
 
@@ -45,27 +47,31 @@ This was built without Nextopper's real webhook contract or DTDC's real API docs
 - [ ] **`backend/lib/dtdc.js`** — get real DTDC API base URL, auth scheme, and request/response shapes for creating a shipment and checking tracking status, then update `createDtdcShipment` and `getDtdcTrackingStatus`. Everything DTDC-specific is isolated to this one file.
 - [ ] Create the real staff accounts in Supabase Auth.
 - [ ] Set `NEXTOPPER_WEBHOOK_SECRET` to the value both sides agree on.
-- [x] Point DNS — see **Deployment** below for the exact records; already registered on Render, waiting on DNS propagation.
+- [ ] Point DNS and cut over to the custom domain — currently running on the free `onrender.com` URLs by choice (see **Deployment** below).
 - [ ] Turn off `DTDC_MOCK` (currently `true` in production — see below) once real DTDC credentials are in place.
 
 ## Environment variables
 
-See `backend/.env.example` for the full list. `CORS_ORIGIN` already defaults to `https://app.boxandbeyondservices.in` in production.
+See `backend/.env.example` for the full list. `CORS_ORIGIN` currently points at `https://box-and-beyond-app.onrender.com` (the dashboard's live URL).
 
 ## Deployment
 
 Live on Render, free tier, both services auto-deploy from `master`:
 
-- **Backend** — Render Web Service `box-and-beyond-api`, root dir `backend`, build `npm install`, start `npm start`. Temporary URL: https://box-and-beyond-api.onrender.com
-- **Frontend** — Render Static Site `box-and-beyond-app`, publish dir `public`. Temporary URL: https://box-and-beyond-app.onrender.com
+- **Backend** — Render Web Service `box-and-beyond-api`, root dir `backend`, build `npm install`, start `npm start`. Live at: https://box-and-beyond-api.onrender.com
+- **Frontend** — Render Static Site `box-and-beyond-app`, publish dir `public`. Live at: https://box-and-beyond-app.onrender.com
 
-Custom domains are registered on both services and waiting on DNS. At your domain registrar for boxandbeyondservices.in, add these two CNAME records:
+Both services are on the **free tier** — it spins down after 15 minutes of inactivity, which delays webhook responses and can skip scheduled cron runs. Upgrade to a paid plan (`$7/mo` Starter, at minimum for the backend) before pointing Nextopper's real webhook at this.
+
+### Switching to the boxandbeyondservices.in domain later
+
+`api.boxandbeyondservices.in` and `app.boxandbeyondservices.in` are already registered as custom domains on the respective Render services, waiting on DNS — add these two CNAME records at your domain registrar whenever you want to cut over:
 
 | Host | Points to |
 |---|---|
 | `api` | `box-and-beyond-api.onrender.com` |
 | `app` | `box-and-beyond-app.onrender.com` |
 
-Render auto-issues SSL once each CNAME resolves (can take up to 24h). Both services are on the **free tier** — it spins down after 15 minutes of inactivity, which delays webhook responses and can skip scheduled cron runs. Upgrade to a paid plan (`$7/mo` Starter, at minimum for the backend) before pointing Nextopper's real webhook at this.
+Render auto-issues SSL once each CNAME resolves (can take up to 24h). After that, update `public/config.js`'s `API_BASE` and the backend's `CORS_ORIGIN` env var back to the `boxandbeyondservices.in` addresses.
 
-**Note:** these two custom-domain slots were freed up by removing the (unverified, never-completed) custom domains from the `gymflow-backend` / `gymflow-frontend` services on this same Render account, since the account's plan only includes 2 free custom domains. Add a payment method in Render billing if both projects need custom domains active at the same time going forward.
+**Note:** these two custom-domain slots were freed up by removing the (unverified, never-completed) custom domains from the `gymflow-backend` / `gymflow-frontend` services on this same Render account, since the account's plan only includes 2 free custom domains. A third slot (e.g. for the bare `boxandbeyondservices.in` with no subdomain) costs $0.25/month and needs a payment method on the account — skipped for now.
