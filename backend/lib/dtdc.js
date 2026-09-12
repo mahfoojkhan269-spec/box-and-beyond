@@ -9,6 +9,40 @@
  * should need to change; callers (routes, cron job) only see the functions below.
  */
 
+/**
+ * Mock mode (DTDC_MOCK=true) — lets us exercise the whole booking queue,
+ * retry flow, and status-sync job end-to-end without real DTDC credentials.
+ * Use it for local testing and a staging environment before going live.
+ *
+ * Deterministic on purpose, not random, so a test run is reproducible:
+ *   - An order with pincode '000000' always fails booking (tests the
+ *     needs_review + retry path without waiting for a real failure).
+ *   - ~5% of AWBs (by hash) permanently land in 'ndr' (tests NDR handling).
+ *   - Everything else progresses booked -> in_transit -> delivered over a
+ *     ~20-minute wall-clock cycle, so running the sync job a few times in a
+ *     row shows real status transitions instead of a static value.
+ */
+const MOCK_MODE = process.env.DTDC_MOCK === 'true';
+
+function hashCode(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+async function mockCreateDtdcShipment(order) {
+  if (order.pincode === '000000') throw new Error('Simulated booking failure (DTDC_MOCK test pincode 000000)');
+  const awb = `MOCK${hashCode(order.nextopper_order_id)}`;
+  return { awb, referenceNumber: order.nextopper_order_id, labelUrl: `https://example.com/mock-labels/${awb}.pdf` };
+}
+
+async function mockGetDtdcTrackingStatus(awb) {
+  if (hashCode(awb) % 100 < 5) return { status: 'ndr', lastUpdatedAt: new Date().toISOString(), ndrReason: 'Customer not available (mock)' };
+  const cycleMinute = Math.floor(Date.now() / 60000) % 20;
+  const status = cycleMinute < 5 ? 'booked' : cycleMinute < 15 ? 'in_transit' : 'delivered';
+  return { status, lastUpdatedAt: new Date().toISOString(), ndrReason: null };
+}
+
 function creds() {
   const baseUrl = process.env.DTDC_API_BASE_URL;
   const apiKey = process.env.DTDC_API_KEY;
@@ -25,6 +59,7 @@ function creds() {
  * @returns {Promise<{ awb: string, referenceNumber: string, labelUrl: string }>}
  */
 async function createDtdcShipment(order) {
+  if (MOCK_MODE) return mockCreateDtdcShipment(order);
   const { baseUrl, apiKey, customerCode } = creds();
 
   const payload = {
@@ -71,6 +106,7 @@ async function createDtdcShipment(order) {
  * @returns {Promise<{ status: string, lastUpdatedAt: string, ndrReason: string|null }>}
  */
 async function getDtdcTrackingStatus(awb) {
+  if (MOCK_MODE) return mockGetDtdcTrackingStatus(awb);
   const { baseUrl, apiKey } = creds();
 
   const res = await fetch(`${baseUrl}/api/v1/shipments/${encodeURIComponent(awb)}/track`, {

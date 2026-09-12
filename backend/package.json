@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js && for f in routes/*.js lib/*.js middleware/*.js jobs/*.js; do node --check \"$f\"; done"
+    "check": "node --check server.js && for f in routes/*.js lib/*.js middleware/*.js jobs/*.js scripts/*.js; do node --check \"$f\"; done"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

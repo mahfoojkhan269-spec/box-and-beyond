@@ -33,6 +33,10 @@ This is designed to hold up at "lakhs of orders" scale, not just a few hundred:
 4. `npm run dev` to run locally (default port 4100).
 5. Serve `public/` with any static file server for local testing — `public/config.js` already points at `localhost:4100` for local dev and `api.boxandbeyondservice.in` for anything else.
 
+## Testing before going live
+
+See [`docs/testing.md`](docs/testing.md) for the full checklist — a staging environment, `DTDC_MOCK=true` mode (test the whole pipeline without real DTDC credentials), `backend/scripts/send-test-webhook.js` (simulate Nextopper with a real signature), and `backend/scripts/seed-orders.js` (load-test pagination/search/jobs at real order volume).
+
 ## Before going live — placeholders to replace
 
 This was built without Nextopper's real webhook contract or DTDC's real API docs/credentials, so two files contain clearly-marked placeholders:
