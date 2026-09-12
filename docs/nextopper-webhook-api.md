@@ -5,7 +5,7 @@ This is what Nextopper's system should call whenever a student completes a cours
 ## Endpoint
 
 ```
-POST https://api.boxandbeyondservice.in/api/webhooks/nextopper
+POST https://api.boxandbeyondservices.in/api/webhooks/nextopper
 Content-Type: application/json
 ```
 
@@ -78,7 +78,7 @@ Requests with a missing or invalid signature are rejected with `401`.
 
 ## Test/staging
 
-Before going live, we'll set up a staging secret and staging endpoint (`https://staging-api.boxandbeyondservice.in/api/webhooks/nextopper` or similar) so both sides can verify a handful of real-shaped test orders end-to-end before real student data flows through it.
+Before going live, we'll set up a staging secret and staging endpoint (`https://staging-api.boxandbeyondservices.in/api/webhooks/nextopper` or similar) so both sides can verify a handful of real-shaped test orders end-to-end before real student data flows through it.
 
 ## Open items before this goes live
 

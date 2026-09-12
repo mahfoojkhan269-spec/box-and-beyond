@@ -2,9 +2,9 @@
 
 Receives course-purchase orders from Nextopper via webhook, books the study-material shipment with DTDC automatically, and gives ops staff a dashboard to watch the pipeline and handle failures.
 
-Domain: **boxandbeyondservice.in**
-- `api.boxandbeyondservice.in` → backend (Express API)
-- `app.boxandbeyondservice.in` → staff dashboard (static `public/` site)
+Domain: **boxandbeyondservices.in**
+- `api.boxandbeyondservices.in` → backend (Express API)
+- `app.boxandbeyondservices.in` → staff dashboard (static `public/` site)
 
 ## How it works
 
@@ -13,7 +13,7 @@ See [`docs/nextopper-webhook-api.md`](docs/nextopper-webhook-api.md) for the ful
 1. Nextopper calls `POST /api/webhooks/nextopper` the moment a student buys a course. This only saves the order and returns immediately — it does **not** call DTDC inline (see "Built for high volume" below).
 2. A background job (`jobs/processBookings.js`, every `DTDC_BOOKING_INTERVAL_MINUTES`) picks up every order still at `status: received` and books it with DTDC (AWB + label), with several bookings in flight at once rather than one at a time.
 3. Another background job (`jobs/syncShipments.js`, every `DTDC_SYNC_INTERVAL_MINUTES`) polls DTDC for tracking updates on shipments that aren't delivered yet, records failed delivery attempts (NDR) with their reason, and flags anything stuck too long as `needs_review`.
-4. Ops staff log into the dashboard (`app.boxandbeyondservice.in`) to see every order's status, retry failed DTDC bookings, and open shipment labels.
+4. Ops staff log into the dashboard (`app.boxandbeyondservices.in`) to see every order's status, retry failed DTDC bookings, and open shipment labels.
 
 ## Built for high volume
 
@@ -31,7 +31,7 @@ This is designed to hold up at "lakhs of orders" scale, not just a few hundred:
 2. Create the 2-3 staff logins in Supabase Auth (dashboard → Authentication → Users → Add user). No signup flow exists in this app on purpose.
 3. `cd backend && npm install`, copy `.env.example` to `.env` and fill in the values (see below).
 4. `npm run dev` to run locally (default port 4100).
-5. Serve `public/` with any static file server for local testing — `public/config.js` already points at `localhost:4100` for local dev and `api.boxandbeyondservice.in` for anything else.
+5. Serve `public/` with any static file server for local testing — `public/config.js` already points at `localhost:4100` for local dev and `api.boxandbeyondservices.in` for anything else.
 
 ## Testing before going live
 
@@ -45,12 +45,12 @@ This was built without Nextopper's real webhook contract or DTDC's real API docs
 - [ ] **`backend/lib/dtdc.js`** — get real DTDC API base URL, auth scheme, and request/response shapes for creating a shipment and checking tracking status, then update `createDtdcShipment` and `getDtdcTrackingStatus`. Everything DTDC-specific is isolated to this one file.
 - [ ] Create the real staff accounts in Supabase Auth.
 - [ ] Set `NEXTOPPER_WEBHOOK_SECRET` to the value both sides agree on.
-- [ ] Point DNS: `api.boxandbeyondservice.in` → backend host, `app.boxandbeyondservice.in` → static site host.
+- [ ] Point DNS: `api.boxandbeyondservices.in` → backend host, `app.boxandbeyondservices.in` → static site host.
 
 ## Environment variables
 
-See `backend/.env.example` for the full list. `CORS_ORIGIN` already defaults to `https://app.boxandbeyondservice.in` in production.
+See `backend/.env.example` for the full list. `CORS_ORIGIN` already defaults to `https://app.boxandbeyondservices.in` in production.
 
 ## Deployment
 
-Deploy `backend/` as a Render Web Service (same as this developer's other Node/Express + Supabase projects) with a custom domain of `api.boxandbeyondservice.in`. Serve `public/` as a static site (Render Static Site, Netlify, or any static host) with a custom domain of `app.boxandbeyondservice.in`.
+Deploy `backend/` as a Render Web Service (same as this developer's other Node/Express + Supabase projects) with a custom domain of `api.boxandbeyondservices.in`. Serve `public/` as a static site (Render Static Site, Netlify, or any static host) with a custom domain of `app.boxandbeyondservices.in`.
