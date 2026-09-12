@@ -35,6 +35,7 @@ async function refreshSession() {
     const data = await res.json();
     localStorage.setItem('ns_access_token', data.access_token);
     localStorage.setItem('ns_refresh_token', data.refresh_token);
+    if (data.user?.email) localStorage.setItem('ns_user_email', data.user.email);
     return true;
   } catch {
     return false;
@@ -44,5 +45,6 @@ async function refreshSession() {
 function logout() {
   localStorage.removeItem('ns_access_token');
   localStorage.removeItem('ns_refresh_token');
+  localStorage.removeItem('ns_user_email');
   window.location.href = 'index.html';
 }

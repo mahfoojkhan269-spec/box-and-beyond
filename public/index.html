@@ -51,6 +51,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     if (!res.ok) { showError(data.error || 'Login failed'); return; }
     localStorage.setItem('ns_access_token', data.access_token);
     localStorage.setItem('ns_refresh_token', data.refresh_token);
+    localStorage.setItem('ns_user_email', data.user?.email || '');
     window.location.href = 'dashboard.html';
   } catch (err) {
     showError('Could not reach the server. Please try again.');

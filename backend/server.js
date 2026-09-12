@@ -5,6 +5,7 @@ const cors = require('cors');
 const webhookRoutes = require('./routes/webhooks');
 const orderRoutes = require('./routes/orders');
 const authRoutes = require('./routes/auth');
+const webhookLogRoutes = require('./routes/webhookLogs');
 const { syncShipments } = require('./jobs/syncShipments');
 
 // Express 4 doesn't forward a rejected async handler's promise anywhere, so an
@@ -38,6 +39,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/webhook-logs', webhookLogRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

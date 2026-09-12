@@ -8,38 +8,71 @@
 <script src="config.js"></script>
 </head>
 <body>
-<div class="topbar">
-  <h1>Box & Beyond</h1>
-  <button class="btn btn-outline btn-sm" id="logoutBtn">Log out</button>
-</div>
-<div class="main">
-  <div class="stats-row" id="statsRow"></div>
-  <div class="toolbar">
-    <select id="statusFilter">
-      <option value="">All statuses</option>
-      <option value="received">Received</option>
-      <option value="shipment_created">Shipment created</option>
-      <option value="dispatched">Dispatched</option>
-      <option value="delivered">Delivered</option>
-      <option value="failed">Failed</option>
-      <option value="needs_review">Needs review</option>
-    </select>
-    <input type="text" id="search" placeholder="Search by student name or order id...">
-    <button class="btn btn-outline btn-sm" id="refreshBtn">Refresh</button>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">Box & Beyond</div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="orders">Orders</button>
+      <button class="nav-item" data-view="needs-review">Needs review</button>
+      <button class="nav-item" data-view="logs">Webhook logs</button>
+    </nav>
+  </aside>
+  <div class="content">
+    <header class="topbar">
+      <h1 id="viewTitle">Orders</h1>
+      <div class="topbar-right">
+        <span class="user-email" id="userEmail"></span>
+        <button class="btn btn-outline btn-sm" id="logoutBtn">Log out</button>
+      </div>
+    </header>
+    <main class="main">
+
+      <section id="view-orders">
+        <div class="stats-row" id="statsRow"></div>
+        <div class="toolbar">
+          <select id="statusFilter">
+            <option value="">All statuses</option>
+            <option value="received">Received</option>
+            <option value="shipment_created">Shipment created</option>
+            <option value="dispatched">Dispatched</option>
+            <option value="delivered">Delivered</option>
+            <option value="failed">Failed</option>
+            <option value="needs_review">Needs review</option>
+          </select>
+          <input type="text" id="search" placeholder="Search by student name or order id...">
+          <button class="btn btn-outline btn-sm" id="refreshBtn">Refresh</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Student</th>
+              <th>Course</th>
+              <th>Status</th>
+              <th>AWB</th>
+              <th>Received</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody"></tbody>
+        </table>
+      </section>
+
+      <section id="view-logs" class="hide">
+        <table>
+          <thead>
+            <tr>
+              <th>Received</th>
+              <th>Signature</th>
+              <th>Order ID (from payload)</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody id="logsBody"></tbody>
+        </table>
+      </section>
+
+    </main>
   </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Order ID</th>
-        <th>Student</th>
-        <th>Course</th>
-        <th>Status</th>
-        <th>AWB</th>
-        <th>Received</th>
-      </tr>
-    </thead>
-    <tbody id="ordersBody"></tbody>
-  </table>
 </div>
 <script src="api.js"></script>
 <script src="dashboard.js"></script>

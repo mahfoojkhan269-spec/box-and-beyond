@@ -4,6 +4,32 @@ document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('refreshBtn').addEventListener('click', () => { loadOrders(); loadStats(); });
 document.getElementById('statusFilter').addEventListener('change', loadOrders);
 document.getElementById('search').addEventListener('input', renderFiltered);
+document.getElementById('userEmail').textContent = localStorage.getItem('ns_user_email') || '';
+
+const VIEW_TITLES = { orders: 'Orders', 'needs-review': 'Needs review', logs: 'Webhook logs' };
+
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => switchView(btn.dataset.view));
+});
+
+function switchView(view) {
+  document.querySelectorAll('.nav-item').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
+  document.getElementById('viewTitle').textContent = VIEW_TITLES[view] || 'Orders';
+
+  const isOrdersLike = view === 'orders' || view === 'needs-review';
+  document.getElementById('view-orders').classList.toggle('hide', !isOrdersLike);
+  document.getElementById('view-logs').classList.toggle('hide', view !== 'logs');
+
+  if (view === 'needs-review') {
+    document.getElementById('statusFilter').value = 'needs_review';
+    loadOrders();
+  } else if (view === 'orders') {
+    document.getElementById('statusFilter').value = '';
+    loadOrders();
+  } else if (view === 'logs') {
+    loadLogs();
+  }
+}
 
 let allOrders = [];
 let expandedId = null;
@@ -155,6 +181,28 @@ function buildDetailRow(order) {
   tr.querySelector('[data-action="retry"]')?.addEventListener('click', () => retryOrder(order.id));
   tr.querySelector('[data-action="deliver"]')?.addEventListener('click', () => markDelivered(order.id));
   return tr;
+}
+
+async function loadLogs() {
+  const res = await apiFetch('/api/webhook-logs');
+  if (!res.ok) return;
+  const data = await res.json();
+  const body = document.getElementById('logsBody');
+  const logs = data.logs || [];
+
+  if (!logs.length) {
+    body.innerHTML = '<tr><td colspan="4" class="empty">No webhook calls received yet.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = logs.map(log => `
+    <tr>
+      <td>${new Date(log.received_at).toLocaleString()}</td>
+      <td><span class="badge ${log.signature_valid ? 'badge-delivered' : 'badge-needs_review'}">${log.signature_valid ? 'valid' : 'invalid'}</span></td>
+      <td>${log.body?.order_id ?? log.body?.id ?? '—'}</td>
+      <td>${log.error || '—'}</td>
+    </tr>
+  `).join('');
 }
 
 async function retryOrder(id) {
