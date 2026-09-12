@@ -45,7 +45,8 @@ This was built without Nextopper's real webhook contract or DTDC's real API docs
 - [ ] **`backend/lib/dtdc.js`** — get real DTDC API base URL, auth scheme, and request/response shapes for creating a shipment and checking tracking status, then update `createDtdcShipment` and `getDtdcTrackingStatus`. Everything DTDC-specific is isolated to this one file.
 - [ ] Create the real staff accounts in Supabase Auth.
 - [ ] Set `NEXTOPPER_WEBHOOK_SECRET` to the value both sides agree on.
-- [ ] Point DNS: `api.boxandbeyondservices.in` → backend host, `app.boxandbeyondservices.in` → static site host.
+- [x] Point DNS — see **Deployment** below for the exact records; already registered on Render, waiting on DNS propagation.
+- [ ] Turn off `DTDC_MOCK` (currently `true` in production — see below) once real DTDC credentials are in place.
 
 ## Environment variables
 
@@ -53,4 +54,18 @@ See `backend/.env.example` for the full list. `CORS_ORIGIN` already defaults to 
 
 ## Deployment
 
-Deploy `backend/` as a Render Web Service (same as this developer's other Node/Express + Supabase projects) with a custom domain of `api.boxandbeyondservices.in`. Serve `public/` as a static site (Render Static Site, Netlify, or any static host) with a custom domain of `app.boxandbeyondservices.in`.
+Live on Render, free tier, both services auto-deploy from `master`:
+
+- **Backend** — Render Web Service `box-and-beyond-api`, root dir `backend`, build `npm install`, start `npm start`. Temporary URL: https://box-and-beyond-api.onrender.com
+- **Frontend** — Render Static Site `box-and-beyond-app`, publish dir `public`. Temporary URL: https://box-and-beyond-app.onrender.com
+
+Custom domains are registered on both services and waiting on DNS. At your domain registrar for boxandbeyondservices.in, add these two CNAME records:
+
+| Host | Points to |
+|---|---|
+| `api` | `box-and-beyond-api.onrender.com` |
+| `app` | `box-and-beyond-app.onrender.com` |
+
+Render auto-issues SSL once each CNAME resolves (can take up to 24h). Both services are on the **free tier** — it spins down after 15 minutes of inactivity, which delays webhook responses and can skip scheduled cron runs. Upgrade to a paid plan (`$7/mo` Starter, at minimum for the backend) before pointing Nextopper's real webhook at this.
+
+**Note:** these two custom-domain slots were freed up by removing the (unverified, never-completed) custom domains from the `gymflow-backend` / `gymflow-frontend` services on this same Render account, since the account's plan only includes 2 free custom domains. Add a payment method in Render billing if both projects need custom domains active at the same time going forward.
